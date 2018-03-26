@@ -43,6 +43,7 @@ p.innerHTML = `<span style="vertical-align: middle;">
                     <li> Wait until page has loaded properly
                     <li> Make sure it's not a "Secure Chrome Page"
                     <li> Make sure you have working Internet Connection
+                    <li> If none of the above, reload the page
                 </p>`
 
 chrome.tabs.getSelected(null, gotTab)
