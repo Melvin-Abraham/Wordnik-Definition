@@ -3,6 +3,10 @@
     "name": "Wordnik Definition",
     "version": "0.0.1",
 
+    "icons": {
+        "128": "icon/icon.png"
+    },
+
     "content_scripts": [
         {
             "matches": [
