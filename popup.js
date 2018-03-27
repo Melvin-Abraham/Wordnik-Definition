@@ -1,24 +1,21 @@
-// Wordnik API :: INFLECTED FORM
-
-// let debug_sentence = `A naturally abundant nonmetallic element that occurs in many inorganic and in all organic compounds, exists freely as graphite and diamond and as a constituent of coal, limestone, and petroleum, and is capable of chemical self-bonding to form an enormous number of chemically, biologically, and commercially important molecules. Atomic number 6; atomic weight 12.011; sublimation point above 3,500°C; boiling point 4,827°C; specific gravity of amorphous carbon 1.8 to 2.1, of diamond 3.15 to 3.53, of graphite 1.9 to 2.3; valence 2, 3, 4. See Table at element.`
-// let utterance = new SpeechSynthesisUtterance(debug_sentence)
-
-// speechUtteranceChunker(utterance, {
-//     chunkLength: 200
-// }, function () {
-//     //some code to execute when done
-//     console.log('done');
-// });
+// @TODO: Code Refactoring required
+// @ISSUE: Use of redundant lines
 
 console.log("Hello from Popup's Background!!")
 console.log(speechSynthesis.getVoices())
 
 let html = document.querySelector("html")
+let search_back_btn = document.querySelector("#search_back")
+let search_mic_btn = document.querySelector("#search_mic")
 let p = document.querySelector("#defBox")
 let heading = document.querySelector("#wordBar")
+let searchBar = document.querySelector("#searchBar")
+let search_box = document.querySelector("#search-box")
 let def_utterance = new SpeechSynthesisUtterance("")
-let word
+let speech_recognizer = new webkitSpeechRecognition()
 let search_btn
+let word
+let did_you_mean_btn
 
 let warning_icon = `<svg xmlns="http://www.w3.org/2000/svg" fill="#FFC107" height="24" viewBox="0 0 24 24" width="24" style="&#10;">
                     <path d="M0 0h24v24H0z" fill="none"/>
@@ -45,6 +42,11 @@ let stop_icon = `<svg xmlns="http://www.w3.org/2000/svg" fill="#777575" height="
                 <path d="M6 6h12v12H6z"/>
                 </svg>`
 
+let search_icon = `<svg xmlns="http://www.w3.org/2000/svg" fill="#777575" height="24" viewBox="0 0 24 24" width="24">
+                    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    <path d="M0 0h24v24H0z" fill="none"/>
+                    </svg>`
+
 
 p.innerHTML = `<span style="vertical-align: middle;">
                 ${warning_icon}
@@ -62,6 +64,34 @@ p.innerHTML = `<span style="vertical-align: middle;">
                     <li> Make sure you have working Internet Connection
                     <li> If none of the above, reload the page
                 </p>`
+
+search_back_btn.onclick = function () {
+    searchBar.style.margin = "0 0 0 0"
+}
+
+speech_recognizer.addEventListener("result", function (e) {
+    search_box.value = e.results[0][0].transcript
+})
+
+speech_recognizer.onstart = function () {
+    document.querySelector("#search_mic svg").fill = "#3575ff"
+}
+
+speech_recognizer.onend = function () {
+    document.querySelector("#search_mic svg").fill = "#777575"
+}
+
+search_mic_btn.onclick = function () {
+    speech_recognizer.start()
+}
+
+search_box.addEventListener("keypress", function (e) {
+    if (e.keyCode == 13) {
+        gotWord({word: search_box.value})
+        searchBar.style.margin = "0 0 0 0"
+    }
+})
+
 
 chrome.tabs.getSelected(null, gotTab)
 chrome.runtime.onMessage.addListener(gotWord)
@@ -164,7 +194,18 @@ function gotResponse (response) {
 
                                 <span style="vertical-align: 4px; font-size: 15px">
                                     ${word}
+                                </span>
+                                
+                                <span id="search_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
+                                    ${search_icon}
                                 </span>`
+
+            search_btn = document.querySelector("#search_btn")
+
+            search_btn.onclick = function () {
+                searchBar.style.margin = "41px 0 0 0"
+                search_box.focus = true
+            }
 
             let speak_btn = document.querySelector("#speak_btn")
             let stop_btn
@@ -191,6 +232,10 @@ function gotResponse (response) {
 
                                             <span style="vertical-align: 4px; font-size: 15px">
                                                 ${word}
+                                            </span>
+                                            
+                                            <span id="search_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
+                                                ${search_icon}
                                             </span>`
 
                         stop_btn = document.querySelector("#stop_btn")
@@ -209,12 +254,23 @@ function gotResponse (response) {
 
                                             <span style="vertical-align: 4px; font-size: 15px">
                                                 ${word}
+                                            </span>
+                                            
+                                            <span id="search_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
+                                                ${search_icon}
                                             </span>`
 
                         speak_btn = document.querySelector("#speak_btn")
 
                         speak_btn.onclick = function () {
                             speakUp()
+                        }
+
+                        search_btn = document.querySelector("#search_btn")
+
+                        search_btn.onclick = function () {
+                            searchBar.style.margin = "41px 0 0 0"
+                            search_box.focus = true
                         }
                     }
                     
@@ -224,6 +280,21 @@ function gotResponse (response) {
         }
         else {
             if ("word" in response) {
+                heading.innerHTML = `<span style="vertical-align: 4px; font-size: 15px">
+                                        ${word}
+                                    </span>
+                                    
+                                    <span id="search_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
+                                        ${search_icon}
+                                    </span>`
+
+                search_btn = document.querySelector("#search_btn")
+
+                search_btn.onclick = function () {
+                    searchBar.style.margin = "41px 0 0 0"
+                    search_box.focus = true
+                }
+
                 p.innerHTML = `<br>
                             <span style="vertical-align: middle;">
                                 ${info_icon}
@@ -237,10 +308,10 @@ function gotResponse (response) {
                             </span>
                             
                             &nbsp;
-                            <button style="vertical-align: 5px;" id="search_btn">Yeah!</button>`
+                            <button style="vertical-align: 5px;" id="did_you_mean_btn">Yeah!</button>`
 
-                search_btn = document.querySelector("#search_btn")
-                search_btn.onclick = searchWord
+                did_you_mean_btn = document.querySelector("#did_you_mean_btn")
+                did_you_mean_btn.onclick = searchWord
 
                 function searchWord() {
                     gotWord({word: response.word})
@@ -248,6 +319,21 @@ function gotResponse (response) {
             }
 
             else {
+                heading.innerHTML = `<span style="vertical-align: 4px; font-size: 15px">
+                                        ${word}
+                                    </span>
+                                    
+                                    <span id="search_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
+                                        ${search_icon}
+                                    </span>`
+
+                search_btn = document.querySelector("#search_btn")
+
+                search_btn.onclick = function () {
+                    searchBar.style.margin = "41px 0 0 0"
+                    search_box.focus = true
+                }
+
                 p.innerHTML = `<br>
                             <span style="vertical-align: middle;">
                                 ${error_icon}
@@ -263,6 +349,21 @@ function gotResponse (response) {
         }
     }
     else {
+        heading.innerHTML = `<span style="vertical-align: 4px; font-size: 15px">
+                                        ${word}
+                                    </span>
+                                    
+                                    <span id="search_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
+                                        ${search_icon}
+                                    </span>`
+
+        search_btn = document.querySelector("#search_btn")
+
+        search_btn.onclick = function () {
+            searchBar.style.margin = "41px 0 0 0"
+            search_box.focus = true
+        }
+
         p.innerHTML = `<br>
                         <span style="vertical-align: middle;">
                             ${error_icon}

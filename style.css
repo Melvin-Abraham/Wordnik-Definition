@@ -57,11 +57,24 @@ a {
     right: 0;
     left: 0;
     color: #ffffff;
-    z-index: 3;
+    z-index: 4;
     font-size: 120%;
     /* font-size: 20px; */
 
     box-shadow: 0 3px 3px rgb(151, 149, 149);
+}
+
+#searchBar {
+    margin: 0 0 0 0;                    /* Initially, not visible to user */
+    background: rgb(236, 241, 241);
+    padding: 4px 0 1px 16px;
+    position: fixed;
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    z-index: 2;
+
+    transition: all .3s ease-in-out;
 }
 
 #wordBar {
@@ -82,3 +95,22 @@ a {
     padding-left: 9px;
 }
 
+input[type="text"] {
+    background: none;
+    border: none;
+    border-bottom: solid 2px rgb(196, 196, 199);
+    padding: 10px 5px 3px 5px;
+    outline: none;
+    margin-bottom: 5px;
+    width: 90%;
+
+    transition: all .3s ease-in-out;
+}
+
+input[type="text"]:hover {
+    border-bottom: solid 2px rgb(172, 192, 247);
+}
+
+input[type="text"]:focus {
+    border-bottom: solid 2px rgb(53, 117, 255);
+}
