@@ -1,12 +1,24 @@
 // Wordnik API :: INFLECTED FORM
 
-console.log("Hello from Popup's Background!!")
+// let debug_sentence = `A naturally abundant nonmetallic element that occurs in many inorganic and in all organic compounds, exists freely as graphite and diamond and as a constituent of coal, limestone, and petroleum, and is capable of chemical self-bonding to form an enormous number of chemically, biologically, and commercially important molecules. Atomic number 6; atomic weight 12.011; sublimation point above 3,500°C; boiling point 4,827°C; specific gravity of amorphous carbon 1.8 to 2.1, of diamond 3.15 to 3.53, of graphite 1.9 to 2.3; valence 2, 3, 4. See Table at element.`
+// let utterance = new SpeechSynthesisUtterance(debug_sentence)
 
+// speechUtteranceChunker(utterance, {
+//     chunkLength: 200
+// }, function () {
+//     //some code to execute when done
+//     console.log('done');
+// });
+
+console.log("Hello from Popup's Background!!")
+console.log(speechSynthesis.getVoices())
+
+let html = document.querySelector("html")
 let p = document.querySelector("#defBox")
 let heading = document.querySelector("#wordBar")
+let def_utterance = new SpeechSynthesisUtterance("")
 let word
 let search_btn
-let def_utterance
 
 let warning_icon = `<svg xmlns="http://www.w3.org/2000/svg" fill="#FFC107" height="24" viewBox="0 0 24 24" width="24" style="&#10;">
                     <path d="M0 0h24v24H0z" fill="none"/>
@@ -27,6 +39,11 @@ let speaker_icon = `<svg xmlns="http://www.w3.org/2000/svg" fill="#777575" heigh
                     <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
                     <path d="M0 0h24v24H0z" fill="none"/>
                     </svg>`
+
+let stop_icon = `<svg xmlns="http://www.w3.org/2000/svg" fill="#777575" height="24" viewBox="0 0 24 24" width="24">
+                <path d="M0 0h24v24H0z" fill="none"/>
+                <path d="M6 6h12v12H6z"/>
+                </svg>`
 
 
 p.innerHTML = `<span style="vertical-align: middle;">
@@ -109,6 +126,8 @@ function gotResponse (response) {
             let pureText = response[0].text
             let tokens = text.split(' ')
 
+            // @ISSUE: Not a good way to find word inflections (or Root Words)
+
             if (tokens[tokens.length - 2] == "of" && 
                 word.toLowerCase().startsWith(tokens[tokens.length - 1].replace('.', ''))) 
             {
@@ -124,8 +143,11 @@ function gotResponse (response) {
                             </p>`
 
 
+            // To accomodate the size the whole content
+            html.style.height = `${51 + 36 + p.offsetHeight + 7}px`
+
             let link = document.querySelector("#wordLink")
-            console.log(link)
+            // console.log(link)
 
             if (link) {
                 link.onclick = function () {
@@ -134,7 +156,7 @@ function gotResponse (response) {
             }
                             
             
-            heading.innerHTML = `<span id="speak_btn" style="vertical-align: -2px;">
+            heading.innerHTML = `<span id="speak_btn" style="vertical-align: -3px;">
                                     ${speaker_icon}
                                 </span>
 
@@ -145,12 +167,57 @@ function gotResponse (response) {
                                 </span>`
 
             let speak_btn = document.querySelector("#speak_btn")
+            let stop_btn
 
             if (speak_btn) {
-                heading.style.padding = "4px 0 4px 16px"
+                heading.style.padding = "6px 0 2px 16px"
                 
                 speak_btn.onclick = function () {
+                    // Timeout is used since `speechSynthesis.getVoices()` is asyncronous
+                    setTimeout(speakUp, 500);
+                }
+
+                function speakUp () {
+                    console.log(speechSynthesis.getVoices())
                     def_utterance = new SpeechSynthesisUtterance(word + ". " + pureText)
+                    def_utterance.voice = speechSynthesis.getVoices()[1]
+    
+                    def_utterance.onstart = function () {
+                        heading.innerHTML = `<span id="stop_btn" style="vertical-align: -3px;">
+                                                ${stop_icon}
+                                            </span>
+
+                                            &nbsp;
+
+                                            <span style="vertical-align: 4px; font-size: 15px">
+                                                ${word}
+                                            </span>`
+
+                        stop_btn = document.querySelector("#stop_btn")
+
+                        stop_btn.onclick = function () {
+                            speechSynthesis.cancel()
+                        }
+                    }
+
+                    def_utterance.onend = function () {
+                        heading.innerHTML = `<span id="speak_btn" style="vertical-align: -3px;">
+                                                ${speaker_icon}
+                                            </span>
+
+                                            &nbsp;
+
+                                            <span style="vertical-align: 4px; font-size: 15px">
+                                                ${word}
+                                            </span>`
+
+                        speak_btn = document.querySelector("#speak_btn")
+
+                        speak_btn.onclick = function () {
+                            speakUp()
+                        }
+                    }
+                    
                     window.speechSynthesis.speak(def_utterance)
                 }
             }
@@ -234,6 +301,8 @@ function loadJSON (url, success_callback, err_connection_callback) {
         err_connection_callback(request)
     }
 }
+
+// @ISSUE: Not really working...
 
 function connectionError (xmlRequest_object) {
     let xhr = xmlRequest_object
