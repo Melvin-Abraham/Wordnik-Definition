@@ -1,8 +1,11 @@
-// @TODO: Code Refactoring required
-// @ISSUE: Use of redundant lines
+// [ ] @TODO: Code Refactoring required
+// [.] @TODO: First take the word *as-it-is* without changing the case
+// [ ] @TODO: Thoughtful way to add links to words (incl., linking Root Word)
+// [ ] @CHECK: Find a way to get "microphone" PERMISSIONS **for Chrome Extension (not Chrome Apps)**
+// [ ] @ISSUE: Use of redundant lines
 
 console.log("Hello from Popup's Background!!")
-console.log(speechSynthesis.getVoices())
+console.log(speechSynthesis.getVoices())    // Without this, the following such line (within `setTimeout`) dosen't work!!
 
 let html = document.querySelector("html")
 let search_back_btn = document.querySelector("#search_back")
@@ -15,7 +18,10 @@ let def_utterance = new SpeechSynthesisUtterance("")
 let speech_recognizer = new webkitSpeechRecognition()
 let search_btn
 let word
+let wordRequest
 let did_you_mean_btn
+let dictionary = new Typo("en_US", false, false, { dictionaryPath: "typo/dictionaries" })
+
 
 let warning_icon = `<svg xmlns="http://www.w3.org/2000/svg" fill="#FFC107" height="24" viewBox="0 0 24 24" width="24" style="&#10;">
                     <path d="M0 0h24v24H0z" fill="none"/>
@@ -98,15 +104,12 @@ chrome.runtime.onMessage.addListener(gotWord)
 
 function gotTab (tab) {
     chrome.tabs.sendMessage(tab.id, {})
-    console.log("Msg SENT.")
+    console.log("Msg SENT to the tab.")
 }
 
 function gotWord (request, sender) {
     // console.log(request)
     // console.log(`Word: ${request.word}`)
-    // console.log(request.noLowerCase == undefined)
-
-    // @TODO: implement `noCaseChange` for the first round in 'gotWord'
 
     word = request.word
     heading.innerText = word
@@ -114,19 +117,30 @@ function gotWord (request, sender) {
 
     if (word) {
         let url
+        wordRequest = request
+
+        if (request.level == undefined) {
+            request.level = 1
+        }
 
         // To be noted some words definitions given by Wordnik is based on diffrernt CASES (upper, lower, title)
         // Ex: "google" and "Google" have different set of definitions in Wordnik.
         
-        if (request.noLowerCase == undefined) {
+        if (request.level == 1) {
+            // Search the word as-it-is (no change in Case)
+        }
+        else if (request.level == 2) {
             // Some words in Wordnik is discoverable only when the word is in lowercase
-            url = `http://api.wordnik.com:80/v4/word.json/${word.toLowerCase()}/definitions?limit=1&includeRelated=false&sourceDictionaries=all&useCanonical=false&includeTags=false&api_key=a2a73e7b926c924fad7001ca3111acd55af2ffabf50eb4ae5`
+
+            word = word.toLowerCase()
         }
-        else {
+        else if (request.level == 3) {
             // Applicable when the word is an abbreviation (eg. CSS, API).
-            // Note: The following won't work.. "css" or "api". So, here `noLowerCase` property in 'request' can be used.
-            url = `http://api.wordnik.com:80/v4/word.json/${word}/definitions?limit=1&includeRelated=false&sourceDictionaries=all&useCanonical=false&includeTags=false&api_key=a2a73e7b926c924fad7001ca3111acd55af2ffabf50eb4ae5`
+
+            word = word.toUpperCase()
         }
+
+        url = `http://api.wordnik.com:80/v4/word.json/${word}/definitions?limit=1&includeRelated=false&sourceDictionaries=all&useCanonical=false&includeTags=false&api_key=a2a73e7b926c924fad7001ca3111acd55af2ffabf50eb4ae5`
 
         loadJSON(url, gotResponse, connectionError)
 
@@ -134,8 +148,21 @@ function gotWord (request, sender) {
                         <span style="vertical-align: middle;">Fetching Content... HOLD ON</span>`
     }
     else {
-        heading.innerText = ""
-        p.innerHTML = `<span style="vertical-align: middle;">
+        heading.style.padding = "6px 0px 2px 16px"
+        
+        heading.innerHTML = `<span id="search_btn" class="ico_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
+                                ${search_icon}
+                            </span>`
+
+        search_btn = document.querySelector("#search_btn")
+
+        search_btn.onclick = function () {
+            searchBar.style.margin = "41px 0 0 0"
+            search_box.focus = true
+        }
+
+        p.innerHTML = `<br>
+                        <span style="vertical-align: middle;">
                             ${warning_icon}
                         </span>
 
@@ -186,7 +213,7 @@ function gotResponse (response) {
             }
                             
             
-            heading.innerHTML = `<span id="speak_btn" style="vertical-align: -3px;">
+            heading.innerHTML = `<span id="speak_btn" class="ico_btn" style="vertical-align: -3px;">
                                     ${speaker_icon}
                                 </span>
 
@@ -196,7 +223,7 @@ function gotResponse (response) {
                                     ${word}
                                 </span>
                                 
-                                <span id="search_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
+                                <span id="search_btn" class="ico_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
                                     ${search_icon}
                                 </span>`
 
@@ -215,16 +242,16 @@ function gotResponse (response) {
                 
                 speak_btn.onclick = function () {
                     // Timeout is used since `speechSynthesis.getVoices()` is asyncronous
-                    setTimeout(speakUp, 500);
+                    setTimeout(speakUp, 10);
                 }
 
                 function speakUp () {
-                    console.log(speechSynthesis.getVoices())
-                    def_utterance = new SpeechSynthesisUtterance(word + ". " + pureText)
+                    // console.log(speechSynthesis.getVoices())
+                    def_utterance = new SpeechSynthesisUtterance(word + "\n" + pureText)
                     def_utterance.voice = speechSynthesis.getVoices()[1]
     
                     def_utterance.onstart = function () {
-                        heading.innerHTML = `<span id="stop_btn" style="vertical-align: -3px;">
+                        heading.innerHTML = `<span id="stop_btn" class="ico_btn" style="vertical-align: -3px;">
                                                 ${stop_icon}
                                             </span>
 
@@ -234,7 +261,7 @@ function gotResponse (response) {
                                                 ${word}
                                             </span>
                                             
-                                            <span id="search_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
+                                            <span id="search_btn" class="ico_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
                                                 ${search_icon}
                                             </span>`
 
@@ -246,7 +273,7 @@ function gotResponse (response) {
                     }
 
                     def_utterance.onend = function () {
-                        heading.innerHTML = `<span id="speak_btn" style="vertical-align: -3px;">
+                        heading.innerHTML = `<span id="speak_btn" class="ico_btn" style="vertical-align: -3px;">
                                                 ${speaker_icon}
                                             </span>
 
@@ -256,7 +283,7 @@ function gotResponse (response) {
                                                 ${word}
                                             </span>
                                             
-                                            <span id="search_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
+                                            <span id="search_btn" class="ico_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
                                                 ${search_icon}
                                             </span>`
 
@@ -280,50 +307,17 @@ function gotResponse (response) {
         }
         else {
             if ("word" in response) {
-                heading.innerHTML = `<span style="vertical-align: 4px; font-size: 15px">
-                                        ${word}
-                                    </span>
-                                    
-                                    <span id="search_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
-                                        ${search_icon}
-                                    </span>`
-
-                search_btn = document.querySelector("#search_btn")
-
-                search_btn.onclick = function () {
-                    searchBar.style.margin = "41px 0 0 0"
-                    search_box.focus = true
-                }
-
-                p.innerHTML = `<br>
-                            <span style="vertical-align: middle;">
-                                ${info_icon}
-                            </span>
-
-                            &nbsp;
-
-                            <span style="vertical-align: 5px; font-size: 15px">
-                                <b>Did you mean: </b>
-                                ${response.word}
-                            </span>
-                            
-                            &nbsp;
-                            <button style="vertical-align: 5px;" id="did_you_mean_btn">Yeah!</button>`
-
-                did_you_mean_btn = document.querySelector("#did_you_mean_btn")
-                did_you_mean_btn.onclick = searchWord
-
-                function searchWord() {
-                    gotWord({word: response.word})
-                }
+                didYouMean(response.word)
             }
 
             else {
+                heading.style.padding = "6px 0px 2px 16px"
+                
                 heading.innerHTML = `<span style="vertical-align: 4px; font-size: 15px">
                                         ${word}
                                     </span>
                                     
-                                    <span id="search_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
+                                    <span id="search_btn" class="ico_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
                                         ${search_icon}
                                     </span>`
 
@@ -349,11 +343,13 @@ function gotResponse (response) {
         }
     }
     else {
+        heading.style.padding = "6px 0px 2px 16px"
+        
         heading.innerHTML = `<span style="vertical-align: 4px; font-size: 15px">
                                         ${word}
                                     </span>
                                     
-                                    <span id="search_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
+                                    <span id="search_btn" class="ico_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
                                         ${search_icon}
                                     </span>`
 
@@ -375,16 +371,85 @@ function gotResponse (response) {
                             <b>NOT FOUND!!</b>
                         </span>`
 
-        console.log(word)
+        console.log(`No Definition for "${word}"`)
 
-        if (word != word.toUpperCase()) {
-            word = word.toUpperCase()
-            gotWord({word: word, noLowerCase: 1})
+        if (wordRequest.level != 3) {
+            wordRequest.level += 1
+            gotWord(wordRequest)
         }
+        else {
+            p.innerHTML = `<img src="./res/throbber_small.svg" style="vertical-align: middle;">&nbsp;&nbsp;
+                            <span style="vertical-align: middle;">Getting suggestions...</span>`
 
+            word = word.toLowerCase()
+
+            if (! dictionary.check(word)) {
+                let suggestions = dictionary.suggest(word)
+                console.log("Suggestions:")
+                console.log(suggestions)
+
+                if (suggestions.length != 0) {
+                    didYouMean(suggestions[0])
+                    return
+                }
+                else {
+                    p.innerHTML = `<br>
+                            <span style="vertical-align: middle;">
+                                ${error_icon}
+                            </span>
+
+                            &nbsp;
+
+                            <span style="vertical-align: 5px; font-size: 15px">
+                                <b>NO RESULTS!</b>
+                            </span>`
+                }
+            }
+        }
     }
 }
 
+
+function didYouMean (did_you_mean_word) {
+    heading.style.padding = "6px 0px 2px 16px"
+
+    heading.innerHTML = `<span style="vertical-align: 4px; font-size: 15px">
+                            ${word}
+                        </span>
+                        
+                        <span id="search_btn" class="ico_btn" style="vertical-align: -3px; float: right; padding-right: 31px;">
+                            ${search_icon}
+                        </span>`
+
+    search_btn = document.querySelector("#search_btn")
+
+    search_btn.onclick = function () {
+        searchBar.style.margin = "41px 0 0 0"
+        search_box.focus = true
+    }
+
+    p.innerHTML = `<br>
+                <span style="vertical-align: middle;">
+                    ${info_icon}
+                </span>
+
+                &nbsp;
+
+                <span style="vertical-align: 5px; font-size: 15px">
+                    <b>Did you mean: </b>
+                    ${did_you_mean_word}
+                </span>
+                
+                &nbsp;
+                <button style="vertical-align: 5px;" id="did_you_mean_btn">Yeah!</button>`
+
+    did_you_mean_btn = document.querySelector("#did_you_mean_btn")
+    did_you_mean_btn.onclick = searchWord
+
+    function searchWord() {
+        gotWord({word: did_you_mean_word, level: 1})
+    }
+}
 
 function loadJSON (url, success_callback, err_connection_callback) {
     let request = new XMLHttpRequest()

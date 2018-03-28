@@ -48,6 +48,19 @@ a {
     cursor: pointer;
 }
 
+.ico_btn svg {
+    border-radius: 100px;
+    transition: all .2s ease-in;
+}
+
+.ico_btn svg:hover {
+    background: #00000013;
+}
+
+.ico_btn svg:active {
+    background: #00000038;
+}
+
 #mainBar {
     background: #ec407a;
     margin: 0;
