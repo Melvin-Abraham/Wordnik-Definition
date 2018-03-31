@@ -2,7 +2,7 @@ html {
     width: 350px;
     height: 240px;
     min-height: 240px;
-    overflow-y: scroll;
+    overflow: auto;
 }
 
 body {
@@ -46,25 +46,39 @@ button:active {
 a {
     color: rgb(28, 129, 211);
     cursor: pointer;
+    text-decoration: none;
 }
 
-.ico_btn svg {
+.ico_btn_dark svg {
     border-radius: 100px;
     transition: all .2s ease-in;
 }
 
-.ico_btn svg:hover {
+.ico_btn_dark svg:hover {
     background: #00000013;
 }
 
-.ico_btn svg:active {
+.ico_btn_dark svg:active {
     background: #00000038;
+}
+
+.ico_btn_light svg {
+    border-radius: 100px;
+    transition: all .2s ease-in;
+}
+
+.ico_btn_light svg:hover {
+    background: #ffffff13;
+}
+
+.ico_btn_light svg:active {
+    background: #ffffff38;
 }
 
 #mainBar {
     background: #ec407a;
     margin: 0;
-    padding: 16px 0 16px 16px;
+    padding: 16px 0 10px 16px;
     position: fixed;
     top: 0;
     right: 0;
