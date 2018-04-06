@@ -264,27 +264,25 @@ function gotResponse (response) {
 
             word = word.toLowerCase()
 
-            if (! dictionary.check(word)) {
-                let suggestions = dictionary.suggest(word)
-                console.log("Suggestions:")
-                console.log(suggestions)
+            let suggestions = dictionary.suggest(word)
+            console.log("Suggestions:")
+            console.log(suggestions)
 
-                if (suggestions.length != 0) {
-                    didYouMean(suggestions[0])
-                    return
-                }
-                else {
-                    p.innerHTML = `<br>
-                            <span style="vertical-align: middle;">
-                                ${error_icon}
-                            </span>
+            if (suggestions.length != 0) {
+                didYouMean(suggestions[0])
+                return
+            }
+            else {
+                p.innerHTML = `<br>
+                        <span style="vertical-align: middle;">
+                            ${error_icon}
+                        </span>
 
-                            &nbsp;
+                        &nbsp;
 
-                            <span style="vertical-align: 5px; font-size: 15px">
-                                <b>NO RESULTS!</b>
-                            </span>`
-                }
+                        <span style="vertical-align: 5px; font-size: 15px">
+                            <b>NO RESULTS!</b>
+                        </span>`
             }
         }
     }
@@ -406,50 +404,58 @@ function setHeading(speaker_part, word_part, side_icons, speak_msg="") {
             }
 
             def_utterance.onend = function () {
-                heading.innerHTML = ""
+                if (speak_msg.startsWith(word)) {
+                    // This statement checks whether the old word
+                    // still exists or is replaced by a new one.
 
-                if (speaker_part) {
-                    heading.innerHTML += `<span id="speak_btn" class="ico_btn_dark" style="vertical-align: -3px;">
-                                            ${speaker_icon}
-                                        </span> &nbsp;`
-                }
-
-                if (word_part) {
-                    heading.innerHTML += `<span style="vertical-align: 4px; font-size: 15px">
-                                            ${word}
-                                        </span>`
-                }
-
-                if (side_icons) {
-                    heading.innerHTML += `<span id="search_btn" class="ico_btn_dark" style="vertical-align: -3px; float: right; padding-right: 31px;">
-                                            ${search_icon}
-                                        </span>
+                    // If yes, the following statements are seized from reverting the
+                    // new utterance with the old one
                     
-                                        <span id="random_btn" class="ico_btn_dark" style="vertical-align: -3px; float: right; padding-right: 15px;">
-                                            ${random_icon}
-                                        </span>`
+                    heading.innerHTML = ""
+
+                    if (speaker_part) {
+                        heading.innerHTML += `<span id="speak_btn" class="ico_btn_dark" style="vertical-align: -3px;">
+                                                ${speaker_icon}
+                                            </span> &nbsp;`
+                    }
+
+                    if (word_part) {
+                        heading.innerHTML += `<span style="vertical-align: 4px; font-size: 15px">
+                                                ${word}
+                                            </span>`
+                    }
+
+                    if (side_icons) {
+                        heading.innerHTML += `<span id="search_btn" class="ico_btn_dark" style="vertical-align: -3px; float: right; padding-right: 31px;">
+                                                ${search_icon}
+                                            </span>
+                        
+                                            <span id="random_btn" class="ico_btn_dark" style="vertical-align: -3px; float: right; padding-right: 15px;">
+                                                ${random_icon}
+                                            </span>`
+                    
+                        search_btn = document.querySelector("#search_btn")
+
+                        search_btn.onclick = function () {
+                            searchBar.style.margin = "43px 0 0 0"
+                            search_box.focus()
+                        }
                 
-                    search_btn = document.querySelector("#search_btn")
-
-                    search_btn.onclick = function () {
-                        searchBar.style.margin = "43px 0 0 0"
-                        search_box.focus()
+                        random_btn = document.querySelector("#random_btn")
+                
+                        random_btn.onclick = function () {
+                            p.innerHTML = `<img src="./res/throbber_small.svg" style="vertical-align: middle;">&nbsp;&nbsp;
+                                            <span style="vertical-align: middle;">Getting a random word...</span>`
+                
+                            loadJSON(rand_word_url, gotWord, connectionError)
+                        }
                     }
-            
-                    random_btn = document.querySelector("#random_btn")
-            
-                    random_btn.onclick = function () {
-                        p.innerHTML = `<img src="./res/throbber_small.svg" style="vertical-align: middle;">&nbsp;&nbsp;
-                                        <span style="vertical-align: middle;">Getting a random word...</span>`
-            
-                        loadJSON(rand_word_url, gotWord, connectionError)
+
+                    speak_btn = document.querySelector("#speak_btn")
+
+                    speak_btn.onclick = function () {
+                        speakUp()
                     }
-                }
-
-                speak_btn = document.querySelector("#speak_btn")
-
-                speak_btn.onclick = function () {
-                    speakUp()
                 }
             }
             

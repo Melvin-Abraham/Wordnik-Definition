@@ -11,7 +11,18 @@ function gotMsg (request, sender, sendResponse) {
 
         // NOT IMPLEMENTED YET!
 
+        console.log("Requested Mic")
+
         let speech = new webkitSpeechRecognition()
+        let recognizedText
+
+        speech.lang = "en-US"
+
+        speech.onresult = function (object) {
+            recognizedText = object.results[0][0].transcript
+            console.log(recognizedText)
+        }
+
         speech.start()
     }
 
