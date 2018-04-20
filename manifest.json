@@ -1,7 +1,7 @@
 {
     "manifest_version": 2,
     "name": "Wordnik Definition",
-    "version": "1.3.0",
+    "version": "1.4.3",
 
     "icons": {
         "128": "icon/icon.png"
@@ -16,6 +16,10 @@
             "js": ["content.js"]
         }
     ],
+
+    "background": {
+        "page": "popup.html"
+    },
 
     "browser_action": {
         "default_icon": "icon/icon.png",

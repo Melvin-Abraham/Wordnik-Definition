@@ -10,7 +10,7 @@ console.log(speechSynthesis.getVoices())    // Without this, the following such 
 
 let html = document.querySelector("html")
 let search_back_btn = document.querySelector("#search_back")
-let search_clear_btn = document.querySelector("#search_clear")
+let mic_btn = document.querySelector("#mic_btn")
 let p = document.querySelector("#defBox")
 let heading = document.querySelector("#wordBar")
 let main_bar = document.querySelector("#mainBar")
@@ -20,6 +20,8 @@ let about_btn = document.querySelector("#about_btn")
 let def_utterance = new SpeechSynthesisUtterance("")
 const rand_word_url = "http://api.wordnik.com:80/v4/words.json/randomWord?hasDictionaryDef=true&minCorpusCount=0&maxCorpusCount=-1&minDictionaryCount=1&maxDictionaryCount=-1&minLength=5&maxLength=-1&api_key=a2a73e7b926c924fad7001ca3111acd55af2ffabf50eb4ae5"
 const version = chrome.runtime.getManifest().version
+let tab
+let mic_interval_id
 let search_btn
 let word
 let wordRequest
@@ -71,8 +73,17 @@ const random_icon = `<svg xmlns="http://www.w3.org/2000/svg" fill="#777575" heig
                     </svg>`
 
 
-p.innerHTML = `<span style="vertical-align: middle;">
-                ${warning_icon}
+chrome.tabs.getSelected(null, function (tab_object) {
+    tab = tab_object
+    console.log(tab)
+})
+
+
+setHeading(false, false, true)
+
+p.innerHTML = `<br>
+                <span style="vertical-align: middle;">
+                    ${warning_icon}
                 </span>
 
                 &nbsp;
@@ -88,13 +99,25 @@ p.innerHTML = `<span style="vertical-align: middle;">
                     <li> If none of the above, reload the page
                 </p>`
 
+html.style.height = `245px`
+
 search_back_btn.onclick = function () {
     searchBar.style.margin = "0 0 0 0"
 }
 
-search_clear_btn.onclick = function () {
-    search_box.value = ""
-    search_box.focus()
+mic_btn.onclick = function () {
+    chrome.tabs.sendMessage(tab.id, {action: "get_user_voice_input"})
+    mic_btn.children[0].setAttribute('fill', "#ff3535")
+
+    mic_interval_id = setInterval(function () {
+        mic_btn.children[0].setAttribute('fill', "#ff3535")
+        
+        setTimeout(function () {
+            mic_btn.children[0].setAttribute('fill', "#777575")
+        }, 1000)
+    }, 1500)
+
+    console.log("Sent Mic Request")
 }
 
 about_btn.onclick = function () {
@@ -102,15 +125,37 @@ about_btn.onclick = function () {
 }
 
 search_box.addEventListener("keypress", function (e) {
-    if (e.keyCode == 13) {
-        gotWord({word: search_box.value.trim()})
+    let searchTerm = search_box.value.trim()
+
+    if (e.keyCode == 13 && searchTerm) {
+        gotWord({word: searchTerm})
         searchBar.style.margin = "0 0 0 0"
     }
 })
 
 
-chrome.tabs.getSelected(null, gotTab)
-chrome.runtime.onMessage.addListener(gotWord)
+setTimeout(function () {
+    gotTab(tab)
+}, 10)
+
+chrome.runtime.onMessage.addListener(handle_content_request)
+
+function handle_content_request (request, sender) {
+    console.log(request)
+
+    if ('word' in request) {
+        gotWord(request, sender)
+    }
+    else if ('voice_text' in request) {
+        clearInterval(mic_interval_id)
+        mic_btn.children[0].setAttribute('fill', "#777575")
+
+        if (request.voice_text) {
+            search_box.value = request.voice_text
+            search_box.focus()
+        }
+    }
+}
 
 function gotTab (tab) {
     chrome.tabs.sendMessage(tab.id, {action: "get_selected_word"})
@@ -185,12 +230,28 @@ function gotResponse (response) {
             // @ISSUE: Not a good way to find word inflections (or Root Words)
 
             if (tokens[tokens.length - 2] == "of" && 
-                word.toLowerCase().startsWith(tokens[tokens.length - 1].replace('.', ''))) 
+                word.toLowerCase().startsWith(tokens[tokens.length - 1].toLowerCase().replace('.', ''))) 
             {
-                
                 tokens[tokens.length - 1] = `<a id="wordLink">${tokens[tokens.length - 1].replace('.', '')}</a>`
                 text = tokens.join(' ')
             }
+
+            // Tag highlighting
+
+            if (pureText.indexOf("   ") !== -1) {
+                const tagIndex = tokens.indexOf("")
+                const tag = tokens.slice(0, tagIndex + 1).join(' ')
+                
+                pureText = pureText.split('')
+                pureText[tag.length] = "\n"
+                pureText = pureText.join('')
+                
+                tokens[0] = `<span style="color: #e91e63"><b><i>${tokens[0]}`
+                tokens[tagIndex + 1] = `</i></b></span>&nbsp;`
+                text = tokens.join(' ')
+            }
+
+            // text = tokens.join(' ')
             
             p.innerHTML = `${text} 
                             <p style="text-align: right;">
@@ -522,7 +583,8 @@ function showAbout () {
                         Souce Code available 
 
                         <a href="https://github.com/Melvin-Abraham/Wordnik-Definition"
-                            title="https://github.com/Melvin-Abraham/Wordnik-Definition">
+                            title="https://github.com/Melvin-Abraham/Wordnik-Definition"
+                            target="blank">
                             here
                         </a>
 

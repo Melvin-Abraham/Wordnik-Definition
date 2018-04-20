@@ -9,10 +9,6 @@ function gotMsg (request, sender, sendResponse) {
         // @CONSIDER: This would require to turn on microphone permissions 
         //            even on untrusted pages.
 
-        // NOT IMPLEMENTED YET!
-
-        console.log("Requested Mic")
-
         let speech = new webkitSpeechRecognition()
         let recognizedText
 
@@ -20,7 +16,15 @@ function gotMsg (request, sender, sendResponse) {
 
         speech.onresult = function (object) {
             recognizedText = object.results[0][0].transcript
-            console.log(recognizedText)
+            chrome.runtime.sendMessage({voice_text: recognizedText})
+        }
+
+        speech.onerror = function (e) {
+            chrome.runtime.sendMessage({voice_text: ""})
+        }
+
+        speech.onnomatch = function (e) {
+            chrome.runtime.sendMessage({voice_text: ""})
         }
 
         speech.start()
